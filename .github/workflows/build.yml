@@ -31,8 +31,10 @@ jobs:
     - name: Build wheel in aarch64 environment
       run: |
         docker run -v $(pwd):/project -w /project multiarch/debian-debootstrap:arm64-bullseye bash -c "
-          apt-get update &&
-          apt-get install -y debian-archive-keyring &&
+          curl -fsSL https://deb.debian.org/debian-security/dists/bullseye-security/Release.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/debian-security-bullseye.gpg &&
+          curl -fsSL https://deb.debian.org/debian/dists/bullseye/Release.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/debian-bullseye.gpg &&
+          echo 'deb http://deb.debian.org/debian bullseye main' > /etc/apt/sources.list &&
+          echo 'deb http://deb.debian.org/debian-security bullseye-security main' >> /etc/apt/sources.list &&
           apt-get update &&
           apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev &&
           python${{ matrix.python-version }} -m pip install --upgrade pip &&
