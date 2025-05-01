@@ -60,6 +60,69 @@ class IndexManager:
         if os.path.exists(index_path):
             os.remove(index_path)
 
+import os
+import pickle
+from typing import Dict, List, Set, Optional
+from .exceptions import FluxDBError
+
+class IndexManager:
+    """Manages indexes for FluxDB collections, storing them in a binary format using pickle.
+
+    Args:
+        db_path (str): Path to the database directory.
+    """
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self.index_path = os.path.join(db_path, "indexes")
+        self._index_cache: Dict[str, Dict] = {}
+        os.makedirs(self.index_path, exist_ok=True)
+
+    def _get_index_path(self, collection: str) -> str:
+        """Returns the file path for a collection's index."""
+        return os.path.join(self.index_path, f"{collection}.idx")
+
+    def create_index(self, collection: str, fields: List[str]) -> None:
+        """Creates an index for specified fields in a collection.
+
+        Args:
+            collection (str): Name of the collection.
+            fields (List[str]): Fields to index.
+        """
+        index_path = self._get_index_path(collection)
+        index_data = {field: {} for field in fields}
+        self._index_cache[collection] = index_data
+        self._save_index(collection, index_data)
+        print(f"Created index for {collection}: {fields}")  # Отладка
+
+    def clear_index(self, collection: str) -> None:
+        """Clears all indexes for a collection.
+
+        Args:
+            collection (str): Name of the collection.
+        """
+        index_path = self._get_index_path(collection)
+        if collection in self._index_cache:
+            self._index_cache[collection] = {field: {} for field in self._index_cache[collection]}
+            self._save_index(collection, self._index_cache[collection])
+        elif os.path.exists(index_path):
+            with open(index_path, 'rb') as f:
+                index_data = pickle.load(f)
+            for field in index_data:
+                index_data[field] = {}
+            self._save_index(collection, index_data)
+
+    def drop_index(self, collection: str) -> None:
+        """Drops the index for a collection.
+
+        Args:
+            collection (str): Name of the collection.
+        """
+        index_path = self._get_index_path(collection)
+        if collection in self._index_cache:
+            del self._index_cache[collection]
+        if os.path.exists(index_path):
+            os.remove(index_path)
+
     def update_index(self, collection: str, record: Dict) -> None:
         """Updates the index with a new or modified record.
 
@@ -69,16 +132,19 @@ class IndexManager:
         """
         index_data = self._load_index(collection)
         if not index_data:
+            print(f"No index for {collection}, skipping indexing")  # Отладка
             return
         record_id = record['_id']
         for field in index_data:
-            value = str(record.get(field, ""))
-            if value not in index_data[field]:
-                index_data[field][value] = []
-            if record_id not in index_data[field][value]:
-                index_data[field][value].append(record_id)
+            value = record.get(field, "")
+            value_str = str(value)
+            if value_str not in index_data[field]:
+                index_data[field][value_str] = []
+            if record_id not in index_data[field][value_str]:
+                index_data[field][value_str].append(record_id)
         self._index_cache[collection] = index_data
         self._save_index(collection, index_data)
+        print(f"Updated index for {collection}: {index_data}")  # Отладка
 
     def remove_from_index(self, collection: str, record_id: str) -> None:
         """Removes a record from the index.
@@ -110,7 +176,9 @@ class IndexManager:
             bool: True if an index can be used, False otherwise.
         """
         index_data = self._load_index(collection)
-        return bool(index_data and any(key in index_data for key in query))
+        can_use = bool(index_data and any(key in index_data for key in query))
+        print(f"Can use index for {collection}, {query}: {can_use}")  # Отладка
+        return can_use
 
     def query_index(self, collection: str, query: Dict) -> Set[str]:
         """Queries the index to retrieve record IDs matching the query.
@@ -124,17 +192,21 @@ class IndexManager:
         """
         index_data = self._load_index(collection)
         if not index_data:
+            print(f"No index for {collection}, returning empty set")  # Отладка
             return set()
         result_ids = None
         for key, value in query.items():
             if key in index_data:
                 value_str = str(value)
                 ids = set(index_data[key].get(value_str, []))
+                print(f"Index query {key}={value_str}: {ids}")  # Отладка
                 if result_ids is None:
                     result_ids = ids
                 else:
                     result_ids = result_ids.intersection(ids)
-        return result_ids or set()
+        result = result_ids or set()
+        print(f"Final index query result for {query}: {result}")  # Отладка
+        return result
 
     def _load_index(self, collection: str) -> Optional[Dict]:
         """Loads the index for a collection from cache or disk.
@@ -154,7 +226,8 @@ class IndexManager:
                     index_data = pickle.load(f)
                     self._index_cache[collection] = index_data
                     return index_data
-            except (pickle.PickleError, EOFError):
+            except (pickle.PickleError, EOFError) as e:
+                print(f"Error loading index {index_path}: {e}")  # Отладка
                 return None
         return None
 
@@ -169,5 +242,7 @@ class IndexManager:
         try:
             with open(index_path, 'wb') as f:
                 pickle.dump(index_data, f, protocol=pickle.HIGHEST_PROTOCOL)
+            print(f"Saved index to {index_path}")  # Отладка
         except IOError as e:
+            print(f"Failed to save index for {collection}: {e}")  # Отладка
             raise FluxDBError(f"Failed to save index for {collection}: {e}")
