@@ -18,45 +18,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker for aarch64
-        run: |
-          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      - name: Set up QEMU for aarch64
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Verify project structure
-        run: |
-          ls -R
-          cat setup.py || true
-          cat MANIFEST.in || true
-
-      - name: Build wheel in aarch64 environment
+      - name: Build wheel in aarch64 Debian Bookworm
         shell: bash
         run: |
-          docker run -v $(pwd):/project -w /project multiarch/debian-debootstrap:arm64-bullseye bash -c "
-            set -eux
-
-            # Настройка источников пакетов
+          docker run -v "$(pwd)":/project -w /project multiarch/debian-debootstrap:arm64-bookworm bash -eux -c "
+            # 1) Настраиваем репозитории
             cat > /etc/apt/sources.list <<EOF
-            deb http://deb.debian.org/debian bullseye main
-            deb http://security.debian.org/debian-security bullseye-security main
-            deb http://deb.debian.org/debian bullseye-updates main
+            deb http://deb.debian.org/debian bookworm main
+            deb http://security.debian.org/debian-security bookworm-security main
+            deb http://deb.debian.org/debian bookworm-updates main
             EOF
 
+            # 2) Первичный apt-get update
             apt-get update
 
-            # Установка необходимых ключей и инструментов
+            # 3) Установим keyring и инструменты GPG
             apt-get install -y gnupg dirmngr debian-archive-keyring
 
+            # 4) Подтянем недостающие ключи (если ещё останутся NO_PUBKEY)
             apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
-              0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793
+              0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793 || true
 
+            # 5) Повторное обновление — теперь без ошибок
             apt-get update
 
-            # Установка Python и зависимостей
+            # 6) Устанавливаем нужные Python-версии и сборочные зависимости
             apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev
 
-            python${{ matrix.python-version }} -m pip install --upgrade pip
-            python${{ matrix.python-version }} -m pip install cython setuptools wheel
-
+            # 7) Собираем wheel
+            python${{ matrix.python-version }} -m pip install --upgrade pip setuptools wheel cython
             python${{ matrix.python-version }} setup.py bdist_wheel
           "
 
