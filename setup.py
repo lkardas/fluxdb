@@ -7,6 +7,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         "psutil>=5.9.0",
+        "flask>=2.0.0",
+        "flask-admin>=1.6.0",
     ],
     author="lkardas",
     description="A lightweight, file-based NoSQL database for Python (not affiliated with InfluxDB)",
