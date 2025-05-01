@@ -19,31 +19,33 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # На Linux нужен QEMU для ARM-эмуляции manylinux
+      # На Linux: готовим QEMU для manylinux-ARM
       - name: Set up QEMU for aarch64
         if: runner.os == 'Linux'
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      # Ставим нужный Python
+      # Устанавливаем нужный Python на всех ОС
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Устанавливаем cibuildwheel
+      # Ставим cibuildwheel
       - name: Install cibuildwheel
         run: pip install cibuildwheel
+
+      # DEBUG: покажем, какие build identifiers есть по умолчанию
+      - name: Print available build identifiers
+        run: cibuildwheel --print-build-identifiers
 
       # Собираем колёса
       - name: Build wheels with cibuildwheel
         shell: bash
         env:
-          # строим только CPython 3.11–3.13
-          CIBW_BUILD: cp311-*,cp312-*,cp313-*
-          # пропускаем PyPy
-          CIBW_SKIP: pp*
-          # выводить в dist/
-          CIBW_OUTPUT_DIR: dist/
+          # Строго в кавычках, чтобы YAML/shell не разыменовывали *
+          CIBW_BUILD: "cp311-*,cp312-*,cp313-*"
+          CIBW_SKIP: "pp*"
+          CIBW_OUTPUT_DIR: "dist/"
         run: |
           cibuildwheel --output-dir dist/
 
