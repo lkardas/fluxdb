@@ -19,12 +19,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # На Linux нужен QEMU для сборки aarch64 wheel’ев внутри manylinux Docker-контейнера
+      # На Linux нужен QEMU для ARM-эмуляции manylinux
       - name: Set up QEMU for aarch64
         if: runner.os == 'Linux'
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      # На всех ОС ставим нужный Python (для Windows/macOS это обязательно, на Linux — желательно)
+      # Ставим нужный Python
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -34,14 +34,15 @@ jobs:
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      # Собираем колёса для всех платформ
+      # Собираем колёса
       - name: Build wheels with cibuildwheel
         shell: bash
         env:
-          # manylinux на Linux, windows/macOS — свои
-          CIBW_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'macos' || 'manylinux' }}
-          # строим для трёх версий CPython
+          # строим только CPython 3.11–3.13
           CIBW_BUILD: cp311-*,cp312-*,cp313-*
+          # пропускаем PyPy
+          CIBW_SKIP: pp*
+          # выводить в dist/
           CIBW_OUTPUT_DIR: dist/
         run: |
           cibuildwheel --output-dir dist/
