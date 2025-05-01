@@ -18,31 +18,28 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      if: matrix.architecture == 'aarch64'
-      uses: docker/setup-qemu-action@v3
-      with:
-        platforms: arm64
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Install dependencies
+    - name: Set up Docker for aarch64
       run: |
-        python -m pip install --upgrade pip
-        pip install cython setuptools wheel
+        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-    - name: Build wheel for aarch64
-      if: matrix.architecture == 'aarch64'
+    - name: Verify project structure
       run: |
-        pip install crossenv
-        python -m crossenv $(which python) venv --sys-cflags="-march=armv8-a" --sys-ldflags="-march=armv8-a"
-        source venv/bin/activate
-        pip install cython setuptools wheel
-        python setup.py bdist_wheel
-        deactivate
+        ls -R
+        cat setup.py
+        cat MANIFEST.in
+
+    - name: Build wheel in aarch64 environment
+      run: |
+        docker run -v $(pwd):/project -w /project multiarch/debian-debootstrap:arm64-bullseye bash -c "
+          apt-get update &&
+          apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev &&
+          python${{ matrix.python-version }} -m pip install --upgrade pip &&
+          python${{ matrix.python-version }} -m pip install cython setuptools wheel &&
+          python${{ matrix.python-version }} setup.py bdist_wheel
+        "
+
+    - name: List wheels
+      run: ls -l dist/
 
     - name: Upload wheels
       uses: actions/upload-artifact@v4
