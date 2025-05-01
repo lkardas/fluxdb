@@ -163,8 +163,9 @@ class FluxDB:
         Raises:
             CollectionNotFoundError: If the collection does not exist.
         """
+        record_id = data.get('_id', str(uuid.uuid4()))  # Generate ID upfront
+
         def _insert():
-            record_id = data.get('_id', str(uuid.uuid4()))
             data_with_id = data.copy()
             data_with_id['_id'] = record_id
             record_bytes = self.storage.encode_record(data_with_id)
@@ -174,13 +175,12 @@ class FluxDB:
             self.index_manager.update_index(collection, data_with_id)
             if len(self.buffer[collection]) >= self.buffer_size:
                 self._flush_buffer(collection)
-            return record_id
 
         collection_path = self._get_collection_path(collection)
         if not os.path.exists(collection_path):
             self.create_collection(collection)
         self._add_to_transaction(_insert)
-        return data.get('_id', str(uuid.uuid4()))
+        return record_id
 
     def insert_many(self, collection: str, data_list: List[Dict]) -> List[str]:
         """Inserts multiple records.
@@ -215,6 +215,9 @@ class FluxDB:
         if not os.path.exists(collection_path):
             raise CollectionNotFoundError(f"Collection {collection} not found")
 
+        # Flush buffer to ensure all records are on disk
+        self._flush_buffer(collection)
+
         records = []
         if query and self.index_manager.can_use_index(collection, query):
             record_ids = self.index_manager.query_index(collection, query)
@@ -231,14 +234,6 @@ class FluxDB:
         records = records[skip:]
         if limit is not None:
             records = records[:limit]
-
-        if collection in self.buffer:
-            buffered_records = [r for r in (self.storage.decode_record(b) for b in self.buffer[collection]) if r]
-            filtered_buffered = self._filter_records(buffered_records, query) if query else buffered_records
-            records.extend(filtered_buffered)
-            if sort:
-                records = self._sort_records(records, sort)
-            records = records[skip:skip + limit if limit else None]
 
         return records
 
@@ -336,7 +331,7 @@ class FluxDB:
                                 matches = False
                         except ValueError:
                             matches = False
-                elif record.get(key, "") != condition:
+                elif record.get(key, "") != str(condition):  # Convert condition to string
                     matches = False
             if matches:
                 results.append(record)
@@ -451,6 +446,7 @@ class FluxDB:
             bool: True if the record exists, False otherwise.
         """
         try:
+            self._flush_buffer(collection)  # Ensure records are on disk
             records = self._load_all_records(self._get_collection_path(collection))
             return any(r['_id'] == record_id for r in records)
         except FluxDBError:
