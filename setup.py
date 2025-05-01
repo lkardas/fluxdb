@@ -11,7 +11,7 @@ setup(
     author="lkardas",
     author_email="your.email@example.com",
     description="FluxDB: A lightweight, file-based NoSQL database for Python with binary storage, indexing, transactions, and a simple query language. Perfect for embedded systems, mobile apps, and prototyping.",
-    long_description=open("README.md", encoding="utf-8").read() if os.path.exists("README.md") else "",
+    long_description=open("README.md", encoding="utf-8").read() if os.path.exists("readmee.md") else "",
     long_description_content_type="text/markdown",
     url="https://github.com/lkardas/fluxdb",
     license="MIT",
