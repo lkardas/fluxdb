@@ -19,38 +19,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Настраиваем Python на runner’е
+      # 1) Устанавливаем Python нужной версии на runner’е
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Устанавливаем зависимости для сборки (Linux/macOS)
-      - name: Install build dependencies
-        if: runner.os != 'Windows'
-        run: |
-          sudo apt-get update && sudo apt-get install -y build-essential libffi-dev
-          pip install --upgrade pip
-
-      # Устанавливаем cibuildwheel
+      # 2) Устанавливаем cibuildwheel (он сам подхватит Docker на Linux и нужные SDK на Win/macOS)
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      # Собираем все колёса
+      # 3) Собираем wheel’ы, вычисляя CIBW_BUILD в bash
       - name: Build wheels with cibuildwheel
-        env:
-          # Определяем платформу: Windows → windows, macOS → macos, иначе manylinux
-          CIBW_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'macos' || 'manylinux' }}
-          # Формируем “cp311-*, cp312-*, cp313-*” без .replace(): split → ['3','12'] → join → '312'
-          CIBW_BUILD: cp${{ join(split(matrix.python-version, '.'), '') }}-*
-          CIBW_OUTPUT_DIR: dist/
-        run: cibuildwheel --output-dir dist/
+        shell: bash
+        run: |
+          # формируем, например, "cp312-*" из "3.12"
+          export CIBW_BUILD="cp$(echo ${{ matrix.python-version }} | tr -d .)-*"
+          
+          # запускаем cibuildwheel — получаем manylinux-, Windows- и macOS-колёса
+          cibuildwheel --output-dir dist/
 
+      # 4) Показываем, что получилось
       - name: List built wheels
         run: ls -l dist/
 
+      # 5) Сохраняем артефакты
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
           path: dist/*.whl
+
