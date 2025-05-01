@@ -5,8 +5,24 @@ INDEX_HTML = """
     <head>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="/static/css/style.css" rel="stylesheet">
+        <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     </head>
     <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('fluxdbadminview.index') }}">FluxDB Admin</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container mt-4">
             <h1 class="mb-4">FluxDB Collections</h1>
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,12 +35,29 @@ INDEX_HTML = """
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Create New Collection</h5>
+                    <form method="post" action="{{ url_for('fluxdbadminview.create_collection') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Collection Name</label>
+                            <input type="text" name="name" id="name" class="form-control" placeholder="e.g., users" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Create</button>
+                    </form>
+                </div>
+            </div>
             {% if collections %}
                 <div class="list-group">
                     {% for collection in collections %}
-                        <a href="{{ url_for('fluxdbadminview.collection', name=collection) }}" class="list-group-item list-group-item-action">
-                            <i class="fas fa-database me-2"></i>{{ collection }}
-                        </a>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('fluxdbadminview.collection', name=collection) }}" class="text-decoration-none">
+                                <i class="fas fa-database me-2"></i>{{ collection }}
+                            </a>
+                            <a href="{{ url_for('fluxdbadminview.drop_collection', name=collection) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete collection {{ collection }}?')">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        </div>
                     {% endfor %}
                 </div>
             {% else %}
@@ -41,8 +74,24 @@ COLLECTION_HTML = """
     <head>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="/static/css/style.css" rel="stylesheet">
+        <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     </head>
     <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('fluxdbadminview.index') }}">FluxDB Admin</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container mt-4">
             <h1 class="mb-4">Collection: {{ collection }}</h1>
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -110,8 +159,24 @@ EDIT_HTML = """
     <head>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="/static/css/style.css" rel="stylesheet">
+        <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     </head>
     <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="{{ url_for('fluxdbadminview.index') }}">FluxDB Admin</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container mt-4">
             <h1 class="mb-4">Edit Record in {{ collection }}</h1>
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -175,5 +240,9 @@ body {
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+.navbar {
+    margin-bottom: 20px;
 }
 """
