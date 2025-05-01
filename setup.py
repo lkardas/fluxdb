@@ -3,8 +3,9 @@ import os
 
 setup(
     name="fluxdb",
-    version="0.1.0",
+    version="0.1.1",  
     packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         "psutil>=5.9.0",
         "flask>=2.0.0",
@@ -32,4 +33,13 @@ setup(
     ],
     python_requires=">=3.9",
     keywords="nosql database embedded file-based lightweight python",
+    package_data={
+        "fluxdb": [
+            "templates/admin/*.html",
+            "static/css/*.css",
+            "LICENSE",
+            "readmee.md",
+            "README.md",
+        ],
+    },
 )
