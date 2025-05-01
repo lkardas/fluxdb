@@ -5,7 +5,7 @@ from flask_admin.contrib.fileadmin import FileAdmin
 from functools import wraps
 import os
 import json
-from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS, MASTER_HTML
+from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS
 
 def require_auth(f):
     @wraps(f)
@@ -75,7 +75,10 @@ class CustomAdminIndexView(AdminIndexView):
     @expose('/')
     @require_auth
     def index(self):
-        return render_template_string(INDEX_HTML, collections=[])  # Fallback for admin index
+        from fluxdb import FluxDB
+        db = FluxDB(os.path.join(os.path.dirname(__file__), 'data'))
+        collections = db.list_collections()
+        return render_template_string(INDEX_HTML, collections=collections)
 
 def start_admin_server(db_path, host='0.0.0.0', port=5000):
     from fluxdb import FluxDB
@@ -85,7 +88,7 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
         app,
         name='FluxDB Admin',
         template_mode='bootstrap5',
-        index_view=CustomAdminIndexView()
+        index_view=CustomAdminIndexView(url='/admin')
     )
 
     db = FluxDB(db_path)
@@ -93,6 +96,10 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
 
     db_dir = os.path.dirname(db_path) or '.'
     admin.add_view(FileAdmin(db_dir, name='Database Files'))
+
+    @app.route('/')
+    def index():
+        return redirect(url_for('admin.index'))
 
     @app.route('/login', methods=['GET', 'POST'])
     def login():
@@ -140,10 +147,6 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
     @app.route('/static/css/style.css')
     def serve_css():
         return Response(STYLE_CSS, mimetype='text/css')
-
-    @app.route('/admin/master.html')
-    def serve_master():
-        return render_template_string(MASTER_HTML)
 
     @app.route('/logout')
     def logout():
