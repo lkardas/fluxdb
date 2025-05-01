@@ -21,37 +21,35 @@ jobs:
       - name: Set up QEMU for aarch64
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Build wheel in aarch64 Debian Bookworm
+      - name: Build wheel in aarch64 Debian Bookworm-Slim
         shell: bash
         run: |
-          docker run -v "$(pwd)":/project -w /project multiarch/debian-debootstrap:arm64-bookworm bash -eux -c "
-            # 1) Настраиваем репозитории
-            cat > /etc/apt/sources.list <<EOF
-            deb http://deb.debian.org/debian bookworm main
-            deb http://security.debian.org/debian-security bookworm-security main
-            deb http://deb.debian.org/debian bookworm-updates main
-            EOF
+          docker run --platform linux/arm64 \
+            -v "$(pwd)":/project -w /project \
+            arm64v8/debian:bookworm-slim bash -eux -c "
+              # Обновляем списки пакетов
+              apt-get update
 
-            # 2) Первичный apt-get update
-            apt-get update
+              # Устанавливаем keyring и GPG-утилиты для проверки подписей
+              apt-get install -y gnupg dirmngr debian-archive-keyring
 
-            # 3) Установим keyring и инструменты GPG
-            apt-get install -y gnupg dirmngr debian-archive-keyring
+              # (Опционально) подтягиваем недостающие ключи, если ещё останутся NO_PUBKEY
+              apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
+                0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793 || true
 
-            # 4) Подтянем недостающие ключи (если ещё останутся NO_PUBKEY)
-            apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
-              0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793 || true
+              # Повторно обновляем — теперь без GPG-ошибок
+              apt-get update
 
-            # 5) Повторное обновление — теперь без ошибок
-            apt-get update
+              # Устанавливаем Python и сборочные зависимости
+              apt-get install -y \
+                python${{ matrix.python-version }} \
+                python${{ matrix.python-version }}-dev \
+                python3-pip build-essential libffi-dev
 
-            # 6) Устанавливаем нужные Python-версии и сборочные зависимости
-            apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev
-
-            # 7) Собираем wheel
-            python${{ matrix.python-version }} -m pip install --upgrade pip setuptools wheel cython
-            python${{ matrix.python-version }} setup.py bdist_wheel
-          "
+              # Собираем wheel
+              python${{ matrix.python-version }} -m pip install --upgrade pip setuptools wheel cython
+              python${{ matrix.python-version }} setup.py bdist_wheel
+            "
 
       - name: List wheels
         run: ls -l dist/
