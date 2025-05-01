@@ -1,8 +1,7 @@
 from flask import Flask, request, redirect, url_for, session, flash
 from flask_admin import Admin, AdminIndexView
-from flask_admin.base import BaseView  # Updated import
+from flask_admin.base import BaseView
 from flask_admin.contrib.fileadmin import FileAdmin
-from fluxdb import FluxDB
 from functools import wraps
 import os
 import json
@@ -79,6 +78,7 @@ class CustomAdminIndexView(AdminIndexView):
         return super().index()
 
 def start_admin_server(db_path, host='0.0.0.0', port=5000):
+    from fluxdb import FluxDB  # Moved import here to avoid circular import
     app = Flask(__name__, static_folder='static', static_url_path='/static')
     app.config['SECRET_KEY'] = 'fluxdb-secret-123'  # Change to a secure key in production
     admin = Admin(
