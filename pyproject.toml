@@ -1,7 +1,34 @@
 [build-system]
-requires = [
-  "setuptools>=42",
-  "wheel",
-  "Cython",
-]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "fluxdb"
+version = "0.1.0"
+description = "A lightweight, file-based NoSQL database for Python (not affiliated with InfluxDB)"
+readme = "readmee.md"
+authors = [{name = "lkardas"}]
+license = {text = "MIT"}
+requires-python = ">=3.9"
+dependencies = [
+    "psutil>=5.9.0",
+]
+keywords = ["nosql", "database", "embedded", "file-based", "lightweight", "python"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+    "Topic :: Software Development :: Embedded Systems",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/lkardas/fluxdb"
+Repository = "https://github.com/lkardas/fluxdb"
