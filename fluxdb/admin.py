@@ -1,11 +1,11 @@
-from flask import Flask, request, redirect, url_for, session, flash
-from flask_admin import Admin, AdminIndexView
+from flask import Flask, request, redirect, url_for, session, flash, Response, render_template_string
+from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.base import BaseView
 from flask_admin.contrib.fileadmin import FileAdmin
 from functools import wraps
 import os
 import json
-from flask_admin import Admin, AdminIndexView, expose
+from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS, MASTER_HTML
 
 def require_auth(f):
     @wraps(f)
@@ -25,14 +25,13 @@ class FluxDBAdminView(BaseView):
     @require_auth
     def index(self):
         collections = self.db.list_collections()
-        return self.render('admin/index.html', collections=collections)
+        return render_template_string(INDEX_HTML, collections=collections)
 
     @expose('/collection/<name>', methods=['GET', 'POST'])
     @require_auth
     def collection(self, name):
         if request.method == 'POST':
             try:
-                # Expect JSON-like input (e.g., {"name": "value"})
                 data = json.loads(request.form.get('data', '{}'))
                 if not isinstance(data, dict):
                     flash("Invalid record format. Use JSON object.", "danger")
@@ -43,7 +42,7 @@ class FluxDBAdminView(BaseView):
                 flash("Invalid JSON format.", "danger")
             return redirect(url_for('fluxdbadminview.collection', name=name))
         records = self.db.find(name)
-        return self.render('admin/collection.html', collection=name, records=records)
+        return render_template_string(COLLECTION_HTML, collection=name, records=records)
 
     @expose('/collection/<name>/edit/<record_id>', methods=['GET', 'POST'])
     @require_auth
@@ -61,7 +60,7 @@ class FluxDBAdminView(BaseView):
                 flash("Invalid JSON format.", "danger")
         records = self.db.find(name, {'_id': record_id})
         record = records[0] if records else {}
-        return self.render('admin/edit.html', collection=name, record=record, record_id=record_id)
+        return render_template_string(EDIT_HTML, collection=name, record=record, record_id=record_id)
 
     @expose('/collection/<name>/delete/<record_id>')
     @require_auth
@@ -76,11 +75,11 @@ class CustomAdminIndexView(AdminIndexView):
     @expose('/')
     @require_auth
     def index(self):
-        return super().index()
+        return render_template_string(INDEX_HTML, collections=[])  # Fallback for admin index
 
 def start_admin_server(db_path, host='0.0.0.0', port=5000):
-    from fluxdb import FluxDB  # Moved import here to avoid circular import
-    app = Flask(__name__, static_folder='static', static_url_path='/static')
+    from fluxdb import FluxDB
+    app = Flask(__name__)
     app.config['SECRET_KEY'] = 'fluxdb-secret-123'  # Change to a secure key in production
     admin = Admin(
         app,
@@ -104,7 +103,7 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
                 flash('Logged in successfully!', 'success')
                 return redirect(url_for('admin.index'))
             flash('Invalid password.', 'danger')
-        return '''
+        return render_template_string("""
             <html>
                 <head>
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -136,7 +135,15 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
                     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
                 </body>
             </html>
-        '''
+        """)
+
+    @app.route('/static/css/style.css')
+    def serve_css():
+        return Response(STYLE_CSS, mimetype='text/css')
+
+    @app.route('/admin/master.html')
+    def serve_master():
+        return render_template_string(MASTER_HTML)
 
     @app.route('/logout')
     def logout():
