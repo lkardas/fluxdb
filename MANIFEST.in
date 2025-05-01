@@ -1,0 +1,5 @@
+exclude fluxdb/setup.py
+exclude fluxdb/*.pyx
+exclude fluxdb/*.c
+include fluxdb/__init__.py
+include fluxdb/fluxdb/*.py
