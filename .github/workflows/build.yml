@@ -1,4 +1,4 @@
-name: Build Wheels
+name: Build and Test Wheels
 
 on:
   push:
@@ -8,42 +8,49 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels for Python ${{ matrix.python-version }} on ARM64
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }} for Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13"]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU for aarch64
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      # 1) Устанавливаем Python на runner’е
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
 
-      - name: Build wheel in ARM64 container
-        shell: bash
+      # 2) Устанавливаем зависимости сборки на Linux/macOS
+      - name: Install build dependencies
+        if: runner.os != 'Windows'
         run: |
-          docker run --rm --platform linux/arm64 \
-            -v "$(pwd)":/project -w /project \
-            python:${{ matrix.python-version }}-slim-bookworm bash -eux -c "
-              # 1) Обновляем списки пакетов
-              apt-get update
+          sudo apt-get update && sudo apt-get install -y build-essential libffi-dev python3-pip || true
+          pip install --upgrade pip
 
-              # 2) Устанавливаем сборочные зависимости
-              apt-get install -y build-essential libffi-dev
+      # 3) Устанавливаем cibuildwheel
+      - name: Install cibuildwheel
+        run: pip install cibuildwheel
 
-              # 3) Обновляем pip, setuptools и wheel, устанавливаем Cython
-              python -m pip install --upgrade pip setuptools wheel cython
+      # 4) Собираем все колёса
+      - name: Build wheels with cibuildwheel
+        env:
+          CIBW_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'macos' || 'manylinux' }}
+          CIBW_BUILD: cp${{ matrix.python-version.replace('.', '') }}-*
+          CIBW_OUTPUT_DIR: dist/
+        run: cibuildwheel --output-dir dist/
 
-              # 4) Собираем wheel
-              python setup.py bdist_wheel
-            "
-
-      - name: List wheels
+      # 5) Показываем результат
+      - name: List built wheels
         run: ls -l dist/
 
+      # 6) Загружаем как артефакт
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-arm64-python${{ matrix.python-version }}
+          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
           path: dist/*.whl
