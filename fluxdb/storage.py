@@ -1,8 +1,8 @@
-import os
 import uuid
 import struct
 from typing import Dict, Optional
 from .exceptions import RecordEncodingError
+
 
 class StorageBackend:
     """Base class for storage backends in FluxDB."""
@@ -11,6 +11,7 @@ class StorageBackend:
 
     def decode_record(self, data: bytes) -> Optional[Dict]:
         raise NotImplementedError
+
 
 class BinaryStorage(StorageBackend):
     """Binary storage backend using struct for encoding/decoding records."""
@@ -39,13 +40,9 @@ class BinaryStorage(StorageBackend):
                     struct.pack('!I', len(key_bytes)) + key_bytes +
                     struct.pack('!I', len(value_bytes)) + value_bytes
                 )
-                print(f"Encoded {key_str}={value_str}")  # Отладка
             body = b''.join(parts)
-            encoded = struct.pack('!I', len(body) + 16) + uuid.UUID(record_id).bytes + body
-            print(f"Encoded record: len={len(encoded)}")  # Отладка
-            return encoded
+            return struct.pack('!I', len(body) + 16) + uuid.UUID(record_id).bytes + body
         except (struct.error, ValueError, UnicodeEncodeError) as e:
-            print(f"Failed to encode record: {e}")  # Отладка
             raise RecordEncodingError(f"Failed to encode record: {e}")
 
     def decode_record(self, data: bytes) -> Optional[Dict]:
@@ -59,41 +56,33 @@ class BinaryStorage(StorageBackend):
         """
         try:
             if len(data) < 16:
-                print(f"Data too short: {len(data)} bytes")  # Отладка
                 return None
             record = {}
             record_id = str(uuid.UUID(bytes=data[:16]))
             record['_id'] = record_id
             offset = 16
             if len(data) < offset + 4:
-                print(f"Invalid data length at offset {offset}")  # Отладка
                 return None
             num_fields = struct.unpack('!I', data[offset:offset+4])[0]
             offset += 4
             for _ in range(num_fields):
                 if len(data) < offset + 4:
-                    print(f"Invalid key length at offset {offset}")  # Отладка
                     return None
                 key_len = struct.unpack('!I', data[offset:offset+4])[0]
                 offset += 4
                 if len(data) < offset + key_len:
-                    print(f"Invalid key data at offset {offset}")  # Отладка
                     return None
                 key = data[offset:offset+key_len].decode('utf-8', errors='ignore')
                 offset += key_len
                 if len(data) < offset + 4:
-                    print(f"Invalid value length at offset {offset}")  # Отладка
                     return None
                 value_len = struct.unpack('!I', data[offset:offset+4])[0]
                 offset += 4
                 if len(data) < offset + value_len:
-                    print(f"Invalid value data at offset {offset}")  # Отладка
                     return None
                 value = data[offset:offset+value_len].decode('utf-8', errors='ignore')
                 offset += value_len
                 record[key] = value
-                print(f"Decoded {key}={value}")  # Отладка
             return record
-        except (struct.error, ValueError, UnicodeDecodeError) as e:
-            print(f"Failed to decode record: {e}")  # Отладка
+        except (struct.error, ValueError, UnicodeDecodeError):
             return None
