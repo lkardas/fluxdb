@@ -19,34 +19,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1) Устанавливаем Python нужной версии на runner’е
+      # На Linux нужен QEMU для сборки aarch64 wheel’ев внутри manylinux Docker-контейнера
+      - name: Set up QEMU for aarch64
+        if: runner.os == 'Linux'
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      # На всех ОС ставим нужный Python (для Windows/macOS это обязательно, на Linux — желательно)
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 2) Устанавливаем cibuildwheel (он сам подхватит Docker на Linux и нужные SDK на Win/macOS)
+      # Устанавливаем cibuildwheel
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      # 3) Собираем wheel’ы, вычисляя CIBW_BUILD в bash
+      # Собираем колёса для всех платформ
       - name: Build wheels with cibuildwheel
         shell: bash
+        env:
+          # manylinux на Linux, windows/macOS — свои
+          CIBW_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'macos' || 'manylinux' }}
+          # строим для трёх версий CPython
+          CIBW_BUILD: cp311-*,cp312-*,cp313-*
+          CIBW_OUTPUT_DIR: dist/
         run: |
-          # формируем, например, "cp312-*" из "3.12"
-          export CIBW_BUILD="cp$(echo ${{ matrix.python-version }} | tr -d .)-*"
-          
-          # запускаем cibuildwheel — получаем manylinux-, Windows- и macOS-колёса
           cibuildwheel --output-dir dist/
 
-      # 4) Показываем, что получилось
       - name: List built wheels
         run: ls -l dist/
 
-      # 5) Сохраняем артефакты
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
           path: dist/*.whl
-
