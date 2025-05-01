@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # 1) Linux: manylinux-колёса для всех CPython
+  # 1) Linux: manylinux-колёса для всех CPython (pure Python)
   build_manylinux:
     name: Build Linux wheels (manylinux)
     runs-on: ubuntu-latest
@@ -18,7 +18,13 @@ jobs:
         run: pip install cibuildwheel
 
       - name: Build manylinux wheels
-        run: cibuildwheel --output-dir dist/
+        run: cibuildwheel --output-dir dist/ --platform linux
+        env:
+          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*"
+          CIBW_ARCHS: "auto64"
+          CIBW_BUILD_FRONTEND: "build"
+          CIBW_ENVIRONMENT: "PIP_NO_BUILD_ISOLATION=false"
+          CIBW_CONFIG_SETTINGS: "wheel.py_limited_api=cp36"
 
       - name: List Linux wheels
         run: ls -l dist/
@@ -29,23 +35,23 @@ jobs:
           name: linux-wheels
           path: dist/*.whl
 
-  # 2) Windows: bdist_wheel для каждой версии Python
+  # 2) Windows: bdist_wheel для pure Python
   build_windows:
     name: Build Windows wheels
     runs-on: windows-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install build deps
-        run: pip install --upgrade pip setuptools wheel cython
+      - name: Install build dependencies
+        run: pip install --upgrade pip setuptools wheel
 
       - name: Build wheel
         run: python setup.py bdist_wheel
@@ -59,23 +65,23 @@ jobs:
           name: windows-wheels-py${{ matrix.python-version }}
           path: dist/*.whl
 
-  # 3) macOS: то же самое
+  # 3) macOS: bdist_wheel для pure Python
   build_macos:
     name: Build macOS wheels
     runs-on: macos-latest
     strategy:
       matrix:
-        python-version: [3.11, 3.12, 3.13]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install build deps
-        run: pip install --upgrade pip setuptools wheel cython
+      - name: Install build dependencies
+        run: pip install --upgrade pip setuptools wheel
 
       - name: Build wheel
         run: python setup.py bdist_wheel
@@ -88,3 +94,48 @@ jobs:
         with:
           name: macos-wheels-py${{ matrix.python-version }}
           path: dist/*.whl
+
+  # 4) Test: Проверяем установку и базовую функциональность
+  test_wheels:
+    name: Test wheels
+    runs-on: ubuntu-latest
+    needs: [build_manylinux, build_windows, build_macos]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-wheels
+          path: dist/
+
+      - name: Download Windows wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-wheels-py3.12
+          path: dist/
+
+      - name: Download macOS wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-wheels-py3.12
+          path: dist/
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install wheel
+        run: pip install dist/*-py3-none-any.whl
+
+      - name: Run basic test
+        run: |
+          python -c "
+          from fluxdb import FluxDB
+          db = FluxDB('testdb')
+          db.create_collection('test')
+          db.insert('test', {'name': 'test'})
+          assert len(db.find('test', {'name': 'test'})) == 1
+          print('Test passed!')
+          "
