@@ -5,7 +5,9 @@ setup(
     name="fluxdb",
     version="0.1.3",
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[
+        "psutil>=5.9.0",  # Добавлена зависимость psutil
+    ],
     author="lkardas",
     author_email="your.email@example.com",
     description="FluxDB: A lightweight, file-based NoSQL database for Python with binary storage, indexing, transactions, and a simple query language. Perfect for embedded systems, mobile apps, and prototyping.",
