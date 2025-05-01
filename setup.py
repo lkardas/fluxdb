@@ -8,12 +8,12 @@ setup(
     packages=find_packages(),
     ext_modules=cythonize(["fluxdb/core.pyx", "fluxdb/indexing.pyx"], language_level=3),
     install_requires=[],
-    author="Your Name",
+    author="lkardas",
     author_email="your.email@example.com",
-    description="A lightweight, binary-format database library for Python with JSON indexes",
-    long_description=open("README.md").read() if os.path.exists("README.md") else "",  # Исправляем путь
+    description="FluxDB is a lightweight file-based NoSQL database in Python, featuring collections, indexing, transactions, binary data storage, and a simple query language. It’s ideal for projects that don’t require an external DBMS and where an embedded solution is preferred.",
+    long_description=open("README.md").read() if os.path.exists("README.md") else "",  
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/fluxdb",
+    url="https://github.com/lkardas/fluxdb",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
