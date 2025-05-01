@@ -51,10 +51,10 @@ INDEX_HTML = """
                 <div class="list-group">
                     {% for collection in collections %}
                         <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <a href="{{ url_for('fluxdbadminview.collection', name=collection) }}" class="text-decoration-none">
+                            <a href="{{ url_for('fluxdbadminview.collection', collection_name=collection) }}" class="text-decoration-none">
                                 <i class="fas fa-database me-2"></i>{{ collection }}
                             </a>
-                            <a href="{{ url_for('fluxdbadminview.drop_collection', name=collection) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete collection {{ collection }}?')">
+                            <a href="{{ url_for('fluxdbadminview.drop_collection', collection_name=collection) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete collection {{ collection }}?')">
                                 <i class="fas fa-trash"></i> Delete
                             </a>
                         </div>
@@ -133,10 +133,10 @@ COLLECTION_HTML = """
                                     <td>{{ record['_id'] }}</td>
                                     <td><pre>{{ record | tojson(indent=2) }}</pre></td>
                                     <td>
-                                        <a href="{{ url_for('fluxdbadminview.edit', name=collection, record_id=record['_id']) }}" class="btn btn-sm btn-warning me-2">
+                                        <a href="{{ url_for('fluxdbadminview.edit', collection_name=collection, record_id=record['_id']) }}" class="btn btn-sm btn-warning me-2">
                                             <i class="fas fa-edit"></i> Edit
                                         </a>
-                                        <a href="{{ url_for('fluxdbadminview.delete', name=collection, record_id=record['_id']) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">
+                                        <a href="{{ url_for('fluxdbadminview.delete', collection_name=collection, record_id=record['_id']) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this record?')">
                                             <i class="fas fa-trash"></i> Delete
                                         </a>
                                     </td>
@@ -198,7 +198,7 @@ EDIT_HTML = """
                             <textarea name="data" id="data" class="form-control" rows="6" required>{{ record | tojson(indent=2) }}</textarea>
                         </div>
                         <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Save Changes</button>
-                        <a href="{{ url_for('fluxdbadminview.collection', name=collection) }}" class="btn btn-secondary">Cancel</a>
+                        <a href="{{ url_for('fluxdbadminview.collection', collection_name=collection) }}" class="btn btn-secondary">Cancel</a>
                     </form>
                 </div>
             </div>
