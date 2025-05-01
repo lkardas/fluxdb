@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Optional, Callable
 from .indexing import IndexManager
 from .storage import BinaryStorage, StorageBackend
 from .exceptions import FluxDBError, CollectionNotFoundError, TransactionError
-from .admin import start_admin_server  # Added for admin panel
+from .admin import start_admin_server
 
 class FluxDB:
     """A lightweight file-based NoSQL database with collections, indexing, and transactions.
@@ -31,7 +31,7 @@ class FluxDB:
         os.makedirs(db_path, exist_ok=True)
         os.makedirs(os.path.join(db_path, 'indexes'), exist_ok=True)
         if web:
-            self.start_admin_server(host, port)
+            start_admin_server(db_path, host, port)
 
     def _get_collection_path(self, collection: str) -> str:
         """Returns the file path for a collection."""
@@ -47,6 +47,8 @@ class FluxDB:
         Returns:
             bool: True if created, False if already exists.
         """
+        if not collection:
+            raise ValueError("Collection name cannot be empty")
         collection_path = self._get_collection_path(collection)
         if os.path.exists(collection_path):
             return False
@@ -164,9 +166,6 @@ class FluxDB:
 
         Returns:
             str: ID of the inserted record.
-
-        Raises:
-            CollectionNotFoundError: If the collection does not exist.
         """
         record_id = data.get('_id', str(uuid.uuid4()))  # Generate ID upfront
 
@@ -564,7 +563,7 @@ class FluxDB:
         collections = []
         for file in os.listdir(self.db_path):
             if file.endswith('.fdb'):
-                collections.append(file.replace('.fdb', ''))
+                collections.append(file[:-4])  # Remove '.fdb'
         return sorted(collections)
 
     def start_admin_server(self, host: str = '0.0.0.0', port: int = 5000) -> None:
