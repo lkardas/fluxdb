@@ -1,0 +1,29 @@
+{% extends 'admin/master.html' %}
+{% block body %}
+<div class="container mt-4">
+    <h1 class="mb-4">Edit Record in {{ collection }}</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Record ID: {{ record_id }}</h5>
+            <form method="post">
+                <div class="mb-3">
+                    <label for="data" class="form-label">Record (JSON format, e.g., {"name": "value"})</label>
+                    <textarea name="data" id="data" class="form-control" rows="6" required>{{ record | tojson(indent=2) }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Save Changes</button>
+                <a href="{{ url_for('fluxdbadminview.collection', name=collection) }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
