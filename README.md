@@ -1,4 +1,3 @@
-```markdown
 # FluxDB
 
 FluxDB is a lightweight, file-based NoSQL database library for Python, designed for persistence without external DBMS dependencies. It offers collections, indexing, transactions, binary storage, and a simple query language, making it ideal for prototyping, embedded systems, and small-scale applications.
@@ -428,4 +427,3 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 > **Navigation**: [Features](#-features) | [Installation](#-installation) | [Quick Start](#-quick-start) | [API](#-api) | [Query Language](#-query-language) | [Roadmap](#-roadmap)
-```
