@@ -8,12 +8,11 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels for Python ${{ matrix.python-version }} on ${{ matrix.architecture }}
+    name: Build wheels for Python ${{ matrix.python-version }} on ARM64
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
-        architecture: ["aarch64"]
 
     steps:
       - uses: actions/checkout@v4
@@ -21,34 +20,23 @@ jobs:
       - name: Set up QEMU for aarch64
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-      - name: Build wheel in aarch64 Debian Bookworm-Slim
+      - name: Build wheel in ARM64 container
         shell: bash
         run: |
-          docker run --platform linux/arm64 \
+          docker run --rm --platform linux/arm64 \
             -v "$(pwd)":/project -w /project \
-            arm64v8/debian:bookworm-slim bash -eux -c "
-              # Обновляем списки пакетов
+            python:${{ matrix.python-version }}-slim-bookworm bash -eux -c "
+              # 1) Обновляем списки пакетов
               apt-get update
 
-              # Устанавливаем keyring и GPG-утилиты для проверки подписей
-              apt-get install -y gnupg dirmngr debian-archive-keyring
+              # 2) Устанавливаем сборочные зависимости
+              apt-get install -y build-essential libffi-dev
 
-              # (Опционально) подтягиваем недостающие ключи, если ещё останутся NO_PUBKEY
-              apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
-                0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793 || true
+              # 3) Обновляем pip, setuptools и wheel, устанавливаем Cython
+              python -m pip install --upgrade pip setuptools wheel cython
 
-              # Повторно обновляем — теперь без GPG-ошибок
-              apt-get update
-
-              # Устанавливаем Python и сборочные зависимости
-              apt-get install -y \
-                python${{ matrix.python-version }} \
-                python${{ matrix.python-version }}-dev \
-                python3-pip build-essential libffi-dev
-
-              # Собираем wheel
-              python${{ matrix.python-version }} -m pip install --upgrade pip setuptools wheel cython
-              python${{ matrix.python-version }} setup.py bdist_wheel
+              # 4) Собираем wheel
+              python setup.py bdist_wheel
             "
 
       - name: List wheels
@@ -57,5 +45,5 @@ jobs:
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.architecture }}-python${{ matrix.python-version }}
+          name: wheels-arm64-python${{ matrix.python-version }}
           path: dist/*.whl
