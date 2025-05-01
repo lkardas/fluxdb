@@ -6,7 +6,7 @@ from typing import Dict, List, Set, Optional, Callable
 from .indexing import IndexManager
 from .storage import BinaryStorage, StorageBackend
 from .exceptions import FluxDBError, CollectionNotFoundError, TransactionError
-
+from .admin import start_admin_server  # Added for admin panel
 
 class FluxDB:
     """A lightweight file-based NoSQL database with collections, indexing, and transactions.
@@ -14,8 +14,11 @@ class FluxDB:
     Args:
         db_path (str): Path to the database directory.
         storage_backend (StorageBackend, optional): Backend for record encoding/decoding.
+        web (bool, optional): If True, starts the web admin server.
+        host (str, optional): Host for the web server.
+        port (int, optional): Port for the web server.
     """
-    def __init__(self, db_path: str, storage_backend: StorageBackend = None):
+    def __init__(self, db_path: str, storage_backend: StorageBackend = None, web: bool = False, host: str = '0.0.0.0', port: int = 5000):
         self.db_path = db_path
         # Dynamically set buffer size based on available memory (1/1000 of available RAM, min 100, max 10000)
         available_mem = psutil.virtual_memory().available // 1024 // 1024  # MB
@@ -27,6 +30,8 @@ class FluxDB:
         self.transaction_buffer: List[Dict] = []
         os.makedirs(db_path, exist_ok=True)
         os.makedirs(os.path.join(db_path, 'indexes'), exist_ok=True)
+        if web:
+            self.start_admin_server(host, port)
 
     def _get_collection_path(self, collection: str) -> str:
         """Returns the file path for a collection."""
@@ -549,3 +554,24 @@ class FluxDB:
             return True
         except IOError as e:
             raise FluxDBError(f"Failed to import collection {collection}: {e}")
+
+    def list_collections(self) -> List[str]:
+        """Returns a list of all collections in the database.
+
+        Returns:
+            List[str]: Names of collections.
+        """
+        collections = []
+        for file in os.listdir(self.db_path):
+            if file.endswith('.fdb'):
+                collections.append(file.replace('.fdb', ''))
+        return sorted(collections)
+
+    def start_admin_server(self, host: str = '0.0.0.0', port: int = 5000) -> None:
+        """Starts the web admin server.
+
+        Args:
+            host (str): Host address for the server.
+            port (int): Port for the server.
+        """
+        start_admin_server(self.db_path, host, port)
