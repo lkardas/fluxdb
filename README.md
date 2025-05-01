@@ -388,6 +388,6 @@ FluxDB supports a dictionary-based query language for filtering records.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](https://github.com/lkardas/fluxdb/tree/main?tab=MIT-1-ov-file#) for details.
 
 **Navigation**: [Features](#features) | [Installation](#installation) | [Quick Start](#quick-start) | [API](#api) | [Query Language](#query-language) | [Roadmap](#roadmap)
