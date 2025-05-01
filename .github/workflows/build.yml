@@ -90,6 +90,15 @@ jobs:
       - name: Install dependencies
         run: pip install psutil
 
+      - name: Install dependencies
+        run: pip install flask==2.0.0
+
+
+      - name: Install dependencies
+        run: pip install flask-admin==1.6.0
+
+        
+
       - name: Install wheel
         run: pip install dist/*-py3-none-any.whl
 
