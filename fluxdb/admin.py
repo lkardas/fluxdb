@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect, url_for, session, flash
 from flask_admin import Admin, AdminIndexView
-from flask_admin.contrib import BaseView
+from flask_admin.base import BaseView  # Updated import
 from flask_admin.contrib.fileadmin import FileAdmin
 from fluxdb import FluxDB
 from functools import wraps
@@ -19,7 +19,7 @@ def require_auth(f):
 class FluxDBAdminView(BaseView):
     def __init__(self, db, **kwargs):
         self.db = db
-        super().__init__(**kwargs)
+        super().__init__(name=kwargs.get('name'), endpoint=kwargs.get('endpoint'))
 
     @expose('/')
     @require_auth
