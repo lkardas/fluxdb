@@ -3,15 +3,14 @@ import os
 
 setup(
     name="fluxdb",
-    version="0.1.3",
+    version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        "psutil>=5.9.0",  # Добавлена зависимость psutil
+        "psutil>=5.9.0",
     ],
     author="lkardas",
-    author_email="your.email@example.com",
-    description="FluxDB: A lightweight, file-based NoSQL database for Python with binary storage, indexing, transactions, and a simple query language. Perfect for embedded systems, mobile apps, and prototyping.",
-    long_description=open("README.md", encoding="utf-8").read() if os.path.exists("readmee.md") else "",
+    description="A lightweight, file-based NoSQL database for Python (not affiliated with InfluxDB)",
+    long_description=open("readmee.md", encoding="utf-8").read() if os.path.exists("readmee.md") else "",
     long_description_content_type="text/markdown",
     url="https://github.com/lkardas/fluxdb",
     license="MIT",
@@ -30,5 +29,5 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     python_requires=">=3.9",
-    keywords="nosql database embedded file-based lightweight python mobile",
+    keywords="nosql database embedded file-based lightweight python",
 )
