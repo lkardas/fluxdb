@@ -15,16 +15,16 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install cibuildwheel
-        run: pip install cibuildwheel
+        run: pip install cibuildwheel==2.21.2
 
       - name: Build manylinux wheels
         run: cibuildwheel --output-dir dist/ --platform linux
         env:
-          CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*"
+          CIBW_BUILD: "cp37-* cp38-* cp39-* cp310-* cp311-* cp312-*"
           CIBW_ARCHS: "auto64"
           CIBW_BUILD_FRONTEND: "build"
           CIBW_ENVIRONMENT: "PIP_NO_BUILD_ISOLATION=false"
-          CIBW_CONFIG_SETTINGS: "wheel.py_limited_api=cp36"
+          CIBW_CONFIG_SETTINGS: "build.build_verbosity=1"
 
       - name: List Linux wheels
         run: ls -l dist/
@@ -40,8 +40,9 @@ jobs:
     name: Build Windows wheels
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
@@ -70,8 +71,9 @@ jobs:
     name: Build macOS wheels
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
 
