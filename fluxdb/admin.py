@@ -27,6 +27,30 @@ class FluxDBAdminView(BaseView):
         collections = self.db.list_collections()
         return render_template_string(INDEX_HTML, collections=collections)
 
+    @expose('/create_collection', methods=['POST'])
+    @require_auth
+    def create_collection(self):
+        name = request.form.get('name')
+        if not name:
+            flash("Collection name cannot be empty.", "danger")
+            return redirect(url_for('fluxdbadminview.index'))
+        try:
+            self.db.create_collection(name)
+            flash(f"Collection {name} created.", "success")
+        except ValueError as e:
+            flash(str(e), "danger")
+        return redirect(url_for('fluxdbadminview.index'))
+
+    @expose('/drop_collection/<name>')
+    @require_auth
+    def drop_collection(self, name):
+        try:
+            self.db.drop_collection(name)
+            flash(f"Collection {name} deleted.", "success")
+        except Exception as e:
+            flash(f"Error deleting collection {name}: {str(e)}", "danger")
+        return redirect(url_for('fluxdbadminview.index'))
+
     @expose('/collection/<name>', methods=['GET', 'POST'])
     @require_auth
     def collection(self, name):
