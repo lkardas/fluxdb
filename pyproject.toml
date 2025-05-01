@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fluxdb"
-version = "0.1.0"
+version = "0.1.1"  
 description = "A lightweight, file-based NoSQL database for Python (not affiliated with InfluxDB)"
 readme = "readmee.md"
 authors = [{name = "lkardas"}]
@@ -34,3 +34,9 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/lkardas/fluxdb"
 Repository = "https://github.com/lkardas/fluxdb"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+fluxdb = ["templates/admin/*.html", "static/css/*.css", "LICENSE", "readmee.md", "README.md"]
