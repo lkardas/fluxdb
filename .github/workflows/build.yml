@@ -19,36 +19,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 1) Устанавливаем Python на runner’е
+      # Настраиваем Python на runner’е
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      # 2) Устанавливаем зависимости сборки на Linux/macOS
+      # Устанавливаем зависимости для сборки (Linux/macOS)
       - name: Install build dependencies
         if: runner.os != 'Windows'
         run: |
-          sudo apt-get update && sudo apt-get install -y build-essential libffi-dev python3-pip || true
+          sudo apt-get update && sudo apt-get install -y build-essential libffi-dev
           pip install --upgrade pip
 
-      # 3) Устанавливаем cibuildwheel
+      # Устанавливаем cibuildwheel
       - name: Install cibuildwheel
         run: pip install cibuildwheel
 
-      # 4) Собираем все колёса
+      # Собираем все колёса
       - name: Build wheels with cibuildwheel
         env:
+          # Определяем платформу: Windows → windows, macOS → macos, иначе manylinux
           CIBW_PLATFORM: ${{ runner.os == 'Windows' && 'windows' || runner.os == 'macOS' && 'macos' || 'manylinux' }}
-          CIBW_BUILD: cp${{ matrix.python-version.replace('.', '') }}-*
+          # Формируем “cp311-*, cp312-*, cp313-*” без .replace(): split → ['3','12'] → join → '312'
+          CIBW_BUILD: cp${{ join(split(matrix.python-version, '.'), '') }}-*
           CIBW_OUTPUT_DIR: dist/
         run: cibuildwheel --output-dir dist/
 
-      # 5) Показываем результат
       - name: List built wheels
         run: ls -l dist/
 
-      # 6) Загружаем как артефакт
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
