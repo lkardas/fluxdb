@@ -41,59 +41,59 @@ class FluxDBAdminView(BaseView):
             flash(str(e), "danger")
         return redirect(url_for('fluxdbadminview.index'))
 
-    @expose('/drop_collection/<name>')
+    @expose('/drop_collection/<collection_name>')
     @require_auth
-    def drop_collection(self, name):
+    def drop_collection(self, collection_name):
         try:
-            self.db.drop_collection(name)
-            flash(f"Collection {name} deleted.", "success")
+            self.db.drop_collection(collection_name)
+            flash(f"Collection {collection_name} deleted.", "success")
         except Exception as e:
-            flash(f"Error deleting collection {name}: {str(e)}", "danger")
+            flash(f"Error deleting collection {collection_name}: {str(e)}", "danger")
         return redirect(url_for('fluxdbadminview.index'))
 
-    @expose('/collection/<name>', methods=['GET', 'POST'])
+    @expose('/collection/<collection_name>', methods=['GET', 'POST'])
     @require_auth
-    def collection(self, name):
+    def collection(self, collection_name):
         if request.method == 'POST':
             try:
                 data = json.loads(request.form.get('data', '{}'))
                 if not isinstance(data, dict):
                     flash("Invalid record format. Use JSON object.", "danger")
                 else:
-                    self.db.insert(name, data)
-                    flash(f"Record added to {name}.", "success")
+                    self.db.insert(collection_name, data)
+                    flash(f"Record added to {collection_name}.", "success")
             except json.JSONDecodeError:
                 flash("Invalid JSON format.", "danger")
-            return redirect(url_for('fluxdbadminview.collection', name=name))
-        records = self.db.find(name)
-        return render_template_string(COLLECTION_HTML, collection=name, records=records)
+            return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
+        records = self.db.find(collection_name)
+        return render_template_string(COLLECTION_HTML, collection=collection_name, records=records)
 
-    @expose('/collection/<name>/edit/<record_id>', methods=['GET', 'POST'])
+    @expose('/collection/<collection_name>/edit/<record_id>', methods=['GET', 'POST'])
     @require_auth
-    def edit(self, name, record_id):
+    def edit(self, collection_name, record_id):
         if request.method == 'POST':
             try:
                 data = json.loads(request.form.get('data', '{}'))
                 if not isinstance(data, dict):
                     flash("Invalid record format. Use JSON object.", "danger")
                 else:
-                    self.db.update(name, record_id, data)
-                    flash(f"Record {record_id} updated in {name}.", "success")
-                    return redirect(url_for('fluxdbadminview.collection', name=name))
+                    self.db.update(collection_name, record_id, data)
+                    flash(f"Record {record_id} updated in {collection_name}.", "success")
+                    return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
             except json.JSONDecodeError:
                 flash("Invalid JSON format.", "danger")
-        records = self.db.find(name, {'_id': record_id})
+        records = self.db.find(collection_name, {'_id': record_id})
         record = records[0] if records else {}
-        return render_template_string(EDIT_HTML, collection=name, record=record, record_id=record_id)
+        return render_template_string(EDIT_HTML, collection=collection_name, record=record, record_id=record_id)
 
-    @expose('/collection/<name>/delete/<record_id>')
+    @expose('/collection/<collection_name>/delete/<record_id>')
     @require_auth
-    def delete(self, name, record_id):
-        if self.db.delete(name, record_id):
-            flash(f"Record {record_id} deleted from {name}.", "success")
+    def delete(self, collection_name, record_id):
+        if self.db.delete(collection_name, record_id):
+            flash(f"Record {record_id} deleted from {collection_name}.", "success")
         else:
-            flash(f"Record {record_id} not found in {name}.", "danger")
-        return redirect(url_for('fluxdbadminview.collection', name=name))
+            flash(f"Record {record_id} not found in {collection_name}.", "danger")
+        return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
 
 class CustomAdminIndexView(AdminIndexView):
     @expose('/')
