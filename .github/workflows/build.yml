@@ -34,8 +34,8 @@ jobs:
           echo 'deb http://deb.debian.org/debian bullseye main' > /etc/apt/sources.list &&
           apt-get update --allow-insecure-repositories &&
           apt-get install -y --allow-unauthenticated curl gnupg &&
-          curl -fsSL https://deb.debian.org/debian-security/dists/bullseye-security/Release.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/debian-security-bullseye.gpg &&
-          curl -fsSL https://deb.debian.org/debian/dists/bullseye/Release.gpg | gpg --dearmor > /etc/apt/trusted.gpg.d/debian-bullseye.gpg &&
+          curl -fsSL https://deb.debian.org/debian/dists/bullseye/main/binary-arm64/Packages.gz > /tmp/bullseye-packages.gz &&
+          curl -fsSL https://deb.debian.org/debian/dists/bullseye/Release > /tmp/bullseye-release &&
           echo 'deb http://deb.debian.org/debian bullseye main' > /etc/apt/sources.list &&
           echo 'deb http://deb.debian.org/debian-security bullseye-security main' >> /etc/apt/sources.list &&
           apt-get update &&
