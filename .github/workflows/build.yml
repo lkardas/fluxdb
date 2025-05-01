@@ -16,54 +16,55 @@ jobs:
         architecture: ["aarch64"]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Docker for aarch64
-      run: |
-        docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      - name: Set up Docker for aarch64
+        run: |
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
-    - name: Verify project structure
-      run: |
-        ls -R
-        cat setup.py || true
-        cat MANIFEST.in || true
+      - name: Verify project structure
+        run: |
+          ls -R
+          cat setup.py || true
+          cat MANIFEST.in || true
 
-    - name: Build wheel in aarch64 environment
-      run: |
-        docker run -v $(pwd):/project -w /project multiarch/debian-debootstrap:arm64-bullseye bash -c "
-          set -eux
+      - name: Build wheel in aarch64 environment
+        shell: bash
+        run: |
+          docker run -v $(pwd):/project -w /project multiarch/debian-debootstrap:arm64-bullseye bash -c "
+            set -eux
 
-          # Настройка источников пакетов
-          cat > /etc/apt/sources.list <<EOF
-deb http://deb.debian.org/debian bullseye main
-deb http://security.debian.org/debian-security bullseye-security main
-deb http://deb.debian.org/debian bullseye-updates main
-EOF
+            # Настройка источников пакетов
+            cat > /etc/apt/sources.list <<EOF
+            deb http://deb.debian.org/debian bullseye main
+            deb http://security.debian.org/debian-security bullseye-security main
+            deb http://deb.debian.org/debian bullseye-updates main
+            EOF
 
-          apt-get update
+            apt-get update
 
-          # Установка необходимых ключей и инструментов
-          apt-get install -y gnupg dirmngr debian-archive-keyring
+            # Установка необходимых ключей и инструментов
+            apt-get install -y gnupg dirmngr debian-archive-keyring
 
-          apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
-            0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793
+            apt-key adv --keyserver keyserver.ubuntu.com --recv-keys \
+              0E98404D386FA1D9 6ED0E7B82643E131 605C66F00D6C9793
 
-          apt-get update
+            apt-get update
 
-          # Установка Python и зависимостей
-          apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev
+            # Установка Python и зависимостей
+            apt-get install -y python${{ matrix.python-version }} python${{ matrix.python-version }}-dev python3-pip build-essential libffi-dev
 
-          python${{ matrix.python-version }} -m pip install --upgrade pip
-          python${{ matrix.python-version }} -m pip install cython setuptools wheel
+            python${{ matrix.python-version }} -m pip install --upgrade pip
+            python${{ matrix.python-version }} -m pip install cython setuptools wheel
 
-          python${{ matrix.python-version }} setup.py bdist_wheel
-        "
+            python${{ matrix.python-version }} setup.py bdist_wheel
+          "
 
-    - name: List wheels
-      run: ls -l dist/
+      - name: List wheels
+        run: ls -l dist/
 
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheels-${{ matrix.architecture }}-python${{ matrix.python-version }}
-        path: dist/*.whl
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.architecture }}-python${{ matrix.python-version }}
+          path: dist/*.whl
