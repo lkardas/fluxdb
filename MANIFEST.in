@@ -1,2 +1,4 @@
+include LICENSE
+include readmee.md
 include README.md
 recursive-include fluxdb *.py
