@@ -15,10 +15,12 @@ class FluxDB:
         db_path (str): Path to the database directory.
         storage_backend (StorageBackend, optional): Backend for record encoding/decoding.
         web (bool, optional): If True, starts the web admin server.
+        debugweb (bool, optional): If True, enables Flask debug mode and console logs.
         host (str, optional): Host for the web server.
         port (int, optional): Port for the web server.
     """
-    def __init__(self, db_path: str, storage_backend: StorageBackend = None, web: bool = False, host: str = '0.0.0.0', port: int = 5000):
+    def __init__(self, db_path: str, storage_backend: StorageBackend = None, web: bool = False, 
+                 debugweb: bool = False, host: str = '0.0.0.0', port: int = 5000):
         self.db_path = db_path
         # Dynamically set buffer size based on available memory (1/1000 of available RAM, min 100, max 10000)
         available_mem = psutil.virtual_memory().available // 1024 // 1024  # MB
@@ -31,7 +33,7 @@ class FluxDB:
         os.makedirs(db_path, exist_ok=True)
         os.makedirs(os.path.join(db_path, 'indexes'), exist_ok=True)
         if web:
-            start_admin_server(db_path, host, port)
+            start_admin_server(db_path, host, port, debugweb)
 
     def _get_collection_path(self, collection: str) -> str:
         """Returns the file path for a collection."""
@@ -566,11 +568,12 @@ class FluxDB:
                 collections.append(file[:-4])  # Remove '.fdb'
         return sorted(collections)
 
-    def start_admin_server(self, host: str = '0.0.0.0', port: int = 5000) -> None:
+    def start_admin_server(self, host: str = '0.0.0.0', port: int = 5000, debugweb: bool = False) -> None:
         """Starts the web admin server.
 
         Args:
             host (str): Host address for the server.
             port (int): Port for the server.
+            debugweb (bool): Enable Flask debug mode and logging.
         """
-        start_admin_server(self.db_path, host, port)
+        start_admin_server(self.db_path, host, port, debugweb)
