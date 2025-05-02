@@ -3,12 +3,15 @@ import uuid
 import struct
 import psutil
 import threading
+import re
 from typing import Dict, List, Set, Optional, Callable, Any
 from collections import OrderedDict
-from .indexing import IndexManager
-from .storage import BinaryStorage, StorageBackend
-from .exceptions import FluxDBError, CollectionNotFoundError, TransactionError
-from .admin import start_admin_server
+
+# Assuming these are in the same package; adjust paths as needed
+from indexing import IndexManager
+from storage import BinaryStorage, StorageBackend
+from exceptions import FluxDBError, CollectionNotFoundError, TransactionError
+from admin import start_admin_server
 
 class FluxDB:
     """A lightweight file-based NoSQL database with collections, indexing, and transactions.
@@ -21,8 +24,8 @@ class FluxDB:
         host (str, optional): Host for the web server.
         port (int, optional): Port for the web server.
     """
-    def __init__(self, db_path: str, storage_backend: StorageBackend = None, web: bool = False, 
-                 debugweb: bool = False, host: str = '0.0.0.0', port: int = 5000):
+    def __init__(self, db_path: str, storage_backend: Optional[StorageBackend] = None, web: bool = False,
+                 debugweb: bool = False, host: str = '0.0.0.0', port: int = 5000) -> None:
         self.db_path = db_path
         # Set buffer size with a safer range
         available_mem = psutil.virtual_memory().available // 1024 // 1024  # MB
@@ -370,7 +373,6 @@ class FluxDB:
 
     def _filter_records(self, records: List[Dict], query: Dict) -> List[Dict]:
         """Filters records with support for $or, $and, $regex."""
-        import re
         results = []
         for record in records:
             matches = True
@@ -388,7 +390,7 @@ class FluxDB:
                             elif op == '$in':
                                 matches = matches and (record_value in value)
                             elif op == '$regex':
-                                matches = matches and bool(re.match(value, str/record_value)))
+                                matches = matches and bool(re.match(value, str(record_value)))
                             elif op == '$or':
                                 matches = matches and any(self._filter_records([record], sub_query) for sub_query in value)
                             elif op == '$and':
