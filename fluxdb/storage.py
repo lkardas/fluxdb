@@ -3,7 +3,6 @@ import struct
 from typing import Dict, Optional
 from .exceptions import RecordEncodingError
 
-
 class StorageBackend:
     """Base class for storage backends in FluxDB."""
     def encode_record(self, data: Dict) -> bytes:
@@ -11,7 +10,6 @@ class StorageBackend:
 
     def decode_record(self, data: bytes) -> Optional[Dict]:
         raise NotImplementedError
-
 
 class BinaryStorage(StorageBackend):
     """Binary storage backend using struct for encoding/decoding records."""
@@ -30,6 +28,8 @@ class BinaryStorage(StorageBackend):
         try:
             record_id = data.get('_id', str(uuid.uuid4()))
             data['_id'] = record_id
+            # Кодируем record_id как строку UTF-8, дополняя до 36 байт
+            record_id_bytes = record_id.encode('utf-8').ljust(36, b'\0')[:36]
             parts = [struct.pack('!I', len(data))]
             for key, value in data.items():
                 key_str = str(key)
@@ -41,7 +41,7 @@ class BinaryStorage(StorageBackend):
                     struct.pack('!I', len(value_bytes)) + value_bytes
                 )
             body = b''.join(parts)
-            return struct.pack('!I', len(body) + 16) + uuid.UUID(record_id).bytes + body
+            return struct.pack('!I', len(body) + 36) + record_id_bytes + body
         except (struct.error, ValueError, UnicodeEncodeError) as e:
             raise RecordEncodingError(f"Failed to encode record: {e}")
 
@@ -55,12 +55,13 @@ class BinaryStorage(StorageBackend):
             Optional[Dict]: Decoded record or None if decoding fails.
         """
         try:
-            if len(data) < 16:
+            if len(data) < 36:
                 return None
             record = {}
-            record_id = str(uuid.UUID(bytes=data[:16]))
+            # Декодируем первые 36 байт как строку UTF-8, убирая нулевые байты
+            record_id = data[:36].rstrip(b'\0').decode('utf-8', errors='ignore')
             record['_id'] = record_id
-            offset = 16
+            offset = 36
             if len(data) < offset + 4:
                 return None
             num_fields = struct.unpack('!I', data[offset:offset+4])[0]
