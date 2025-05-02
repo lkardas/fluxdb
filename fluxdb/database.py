@@ -2,16 +2,18 @@ import os
 import uuid
 import struct
 import psutil
+import logging
 import threading
-import re
 from typing import Dict, List, Set, Optional, Callable, Any
 from collections import OrderedDict
+from .indexing import IndexManager
+from .storage import BinaryStorage, StorageBackend
+from .exceptions import FluxDBError, CollectionNotFoundError, TransactionError
+from .admin import start_admin_server
 
-# Assuming these are in the same package; adjust paths as needed
-from indexing import IndexManager
-from storage import BinaryStorage, StorageBackend
-from exceptions import FluxDBError, CollectionNotFoundError, TransactionError
-from admin import start_admin_server
+# Configure logging to only show warnings and errors
+logging.basicConfig(level=logging.WARNING, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class FluxDB:
     """A lightweight file-based NoSQL database with collections, indexing, and transactions.
@@ -24,12 +26,12 @@ class FluxDB:
         host (str, optional): Host for the web server.
         port (int, optional): Port for the web server.
     """
-    def __init__(self, db_path: str, storage_backend: Optional[StorageBackend] = None, web: bool = False,
-                 debugweb: bool = False, host: str = '0.0.0.0', port: int = 5000) -> None:
+    def __init__(self, db_path: str, storage_backend: StorageBackend = None, web: bool = False, 
+                 debugweb: bool = False, host: str = '0.0.0.0', port: int = 5000):
         self.db_path = db_path
         # Set buffer size with a safer range
         available_mem = psutil.virtual_memory().available // 1024 // 1024  # MB
-        self.buffer_size = max(100, min(5000, available_mem // 1000))  # Max 5GB
+        self.buffer_size = max(100, min(5000, available_mem // 1000))  # Reduced max to 5GB
         self.storage = storage_backend or BinaryStorage()
         self.index_manager = IndexManager(db_path)
         self.buffer: Dict[str, List[bytes]] = {}
@@ -235,7 +237,7 @@ class FluxDB:
             if collection not in self.buffer:
                 self.buffer[collection] = []
             for data in data_list:
-                record_id = data.get('_id', str(uuid.uuid4()))
+                record_id = data.get('_id use record_id
                 data_with_id = data.copy()
                 data_with_id['_id'] = record_id
                 self._validate_record(collection, data_with_id)
@@ -311,19 +313,22 @@ class FluxDB:
                     f.seek(offset)
                     len_bytes = f.read(4)
                     if len(len_bytes) < 4:
+                        logger.warning(f"Corrupted record at offset {offset} in {collection_path}")
                         break
                     record_len = struct.unpack('!I', len_bytes)[0]
                     if offset + 4 + record_len > file_size:
+                        logger.warning(f"Truncated record at offset {offset} in {collection_path}")
                         break
                     record_data = f.read(record_len)
                     if len(record_data) < record_len:
+                        logger.warning(f"Incomplete record at offset {offset} in {collection_path}")
                         break
                     try:
                         record = self.storage.decode_record(record_data)
                         if record:
                             records.append(record)
-                    except Exception:
-                        pass  # Skip corrupted records
+                    except Exception as e:
+                        logger.warning(f"Failed to decode record at offset {offset}: {e}")
                     offset += 4 + record_len
         except (IOError, struct.error) as e:
             raise FluxDBError(f"Failed to load records: {e}")
@@ -364,8 +369,8 @@ class FluxDB:
                             self.cache[cache_key] = record
                             if len(self.cache) > self.cache_size:
                                 self.cache.popitem(last=False)
-                    except Exception:
-                        pass  # Skip corrupted records
+                    except Exception as e:
+                        logger.warning(f"Failed to decode record at offset {offset}: {e}")
                     offset += 4 + record_len
         except (IOError, struct.error) as e:
             raise FluxDBError(f"Failed to load records by IDs: {e}")
@@ -373,6 +378,7 @@ class FluxDB:
 
     def _filter_records(self, records: List[Dict], query: Dict) -> List[Dict]:
         """Filters records with support for $or, $and, $regex."""
+        import re
         results = []
         for record in records:
             matches = True
