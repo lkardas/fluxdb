@@ -1,11 +1,18 @@
 from flask import Flask, request, redirect, url_for, session, flash, Response, render_template_string
 from flask_admin import Admin, AdminIndexView, expose
-from flask_admin.base import BaseView
 from flask_admin.contrib.fileadmin import FileAdmin
 from functools import wraps
 import os
 import json
+import threading
+import logging
 from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS
+from . import FluxDB
+
+# Suppress Flask logs when not in debug mode
+class NoLoggingFilter(logging.Filter):
+    def filter(self, record):
+        return False
 
 def require_auth(f):
     @wraps(f)
@@ -16,7 +23,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-class FluxDBAdminView(BaseView):
+class FluxDBAdminView:
     def __init__(self, db, **kwargs):
         self.db = db
         super().__init__(name=kwargs.get('name'), endpoint=kwargs.get('endpoint'))
@@ -99,13 +106,11 @@ class CustomAdminIndexView(AdminIndexView):
     @expose('/')
     @require_auth
     def index(self):
-        from fluxdb import FluxDB
         db = FluxDB(os.path.join(os.path.dirname(__file__), 'data'))
         collections = db.list_collections()
         return render_template_string(INDEX_HTML, collections=collections)
 
-def start_admin_server(db_path, host='0.0.0.0', port=5000):
-    from fluxdb import FluxDB
+def start_admin_server(db_path, host='0.0.0.0', port=5000, debug=False):
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'fluxdb-secret-123'  # Change to a secure key in production
     admin = Admin(
@@ -178,4 +183,21 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000):
         flash('Logged out.', 'info')
         return redirect(url_for('login'))
 
-    app.run(host=host, port=port, debug=True)
+    # Suppress Flask/Werkzeug logging if not in debug mode
+    if not debug:
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)
+        log.addFilter(NoLoggingFilter())
+
+    # Run Flask in a separate thread
+    def run_flask():
+        import sys
+        if not debug:
+            # Redirect stdout/stderr to null to suppress console output
+            null_file = os.devnull if os.name != 'nt' else 'NUL'
+            sys.stdout = open(null_file, 'w')
+            sys.stderr = open(null_file, 'w')
+        app.run(host=host, port=port, debug=debug, use_reloader=False)
+
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
