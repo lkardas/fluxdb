@@ -7,7 +7,6 @@ import json
 import threading
 import logging
 from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS
-from . import FluxDB
 
 # Suppress Flask logs when not in debug mode
 class NoLoggingFilter(logging.Filter):
@@ -23,7 +22,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-class FluxDBAdminView:
+class FluxDBAdminView(AdminIndexView):
     def __init__(self, db, **kwargs):
         self.db = db
         super().__init__(name=kwargs.get('name'), endpoint=kwargs.get('endpoint'))
@@ -102,33 +101,25 @@ class FluxDBAdminView:
             flash(f"Record {record_id} not found in {collection_name}.", "danger")
         return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
 
-class CustomAdminIndexView(AdminIndexView):
-    @expose('/')
-    @require_auth
-    def index(self):
-        db = FluxDB(os.path.join(os.path.dirname(__file__), 'data'))
-        collections = db.list_collections()
-        return render_template_string(INDEX_HTML, collections=collections)
-
 def start_admin_server(db_path, host='0.0.0.0', port=5000, debug=False):
+    # Lazy import to avoid circular import
+    from .database import FluxDB
+
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'fluxdb-secret-123'  # Change to a secure key in production
     admin = Admin(
         app,
         name='FluxDB Admin',
         template_mode='bootstrap5',
-        index_view=CustomAdminIndexView(url='/admin')
+        index_view=FluxDBAdminView(FluxDB(db_path), url='/admin', endpoint='fluxdbadminview')
     )
-
-    db = FluxDB(db_path)
-    admin.add_view(FluxDBAdminView(db, name='Collections', endpoint='fluxdbadminview'))
 
     db_dir = os.path.dirname(db_path) or '.'
     admin.add_view(FileAdmin(db_dir, name='Database Files'))
 
     @app.route('/')
     def index():
-        return redirect(url_for('admin.index'))
+        return redirect(url_for('fluxdbadminview.index'))
 
     @app.route('/login', methods=['GET', 'POST'])
     def login():
@@ -137,7 +128,7 @@ def start_admin_server(db_path, host='0.0.0.0', port=5000, debug=False):
             if password == 'admin123':  # Replace with a secure password
                 session['logged_in'] = True
                 flash('Logged in successfully!', 'success')
-                return redirect(url_for('admin.index'))
+                return redirect(url_for('fluxdbadminview.index'))
             flash('Invalid password.', 'danger')
         return render_template_string("""
             <html>
