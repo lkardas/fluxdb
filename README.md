@@ -1,6 +1,3 @@
-
----
-
 # FluxDB
 
 FluxDB is a lightweight, file-based NoSQL database library for Python, designed for persistence without external DBMS dependencies. It provides collections, indexing, transactions, and binary storage with a simple query language, making it ideal for prototyping and embedded systems.
@@ -22,15 +19,12 @@ FluxDB is a lightweight, file-based NoSQL database library for Python, designed 
 
 ## Installation
 
-FluxDB is not yet available on PyPI. Install from source:
+FluxDB is not yet available on PyPI. Install from TestPyPI:
 
-    git clone https://github.com/lkardas/fluxdb.git
-    cd fluxdb
-    pip install .
+    pip install -i https://test.pypi.org/simple/ fluxdb
 
 **Requirements**:
 - Python 3.9 or higher
-- `psutil>=5.9.0` (installed automatically)
 
 Import in your project:
 
