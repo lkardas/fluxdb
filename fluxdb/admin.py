@@ -103,7 +103,7 @@ class FluxDBAdminView(AdminIndexView):
 
 def start_admin_server(db_path, host='0.0.0.0', port=5000, debug=False):
     # Lazy import to avoid circular import
-    from .database import FluxDB
+    from .fluxdb import FluxDB
 
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'fluxdb-secret-123'  # Change to a secure key in production
