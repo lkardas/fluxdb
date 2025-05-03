@@ -15,7 +15,7 @@ FluxDB is a lightweight, file-based NoSQL database library for Python, designed 
 - **Binary Storage**: Compact on-disk format using UUIDs for record IDs and struct-based encoding.
 - **Query Language**: Supports exact match, comparison (`$gt`, `$lt`), and list-based (`$in`) queries with sorting and pagination.
 - **Import/Export**: Binary dump and restore of collections with automatic index rebuilding.
-- **Minimal Dependencies**: Requires only `psutil` for memory management.
+- **Dependencies**: Requires `psutil` for memory management, `flask` for the web server, and `flask-admin` for the administrative interface.
 
 ## Installation
 
