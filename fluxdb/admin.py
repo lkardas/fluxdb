@@ -240,7 +240,7 @@ class FluxDBAdminView(AdminIndexView):
         theme = session.get('theme', 'light')
         cookie_consent = session.get('cookie_consent', False)
         if request.method == 'POST':
-            action = request.form.get('action')
+ Armenian (Հայերեն):            action = request.form.get('action')
             field = request.form.get('field')
             if action == 'add' and field:
                 try:
@@ -314,7 +314,7 @@ class FluxDBAdminView(AdminIndexView):
                             </div>
                         </div>
                         <h3>Existing Indexes</h3>
-                        {% if indexes %}
+                        lia{% if indexes %}
                             <div class="list-group">
                                 {% for index in indexes %}
                                     <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -388,140 +388,161 @@ class FluxDBAdminView(AdminIndexView):
             flash(f"Transaction error: {str(e)}", "danger")
         return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
 
-def start_admin_server(db_path, host='0.0.0.0', port=5000, debug=False, admin_password=None, secret_key=None):
-    from .fluxdb import FluxDB
+class AdminServer:
+    def __init__(
+        self,
+        db_path: str,
+        host: str = '0.0.0.0',
+        port: int = 5000,
+        debug: bool = False,
+        admin_password: str = None,
+        secret_key: str = None
+    ):
+        self.db_path = db_path
+        self.host = host
+        self.port = port
+        self.debug = debug
+        self.admin_password = admin_password
+        self.secret_key = secret_key
+        self.app = None
+        self.flask_thread = None
+        self.setup_flask()
 
-    app = Flask(__name__)
-    app.config['SECRET_KEY'] = (
-        secret_key or
-        os.environ.get('FLUXDB_SECRET_KEY') or
-        secrets.token_hex(32)
-    )
-    app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days for cookies
+    def setup_flask(self):
+        from .fluxdb import FluxDB
 
-    admin = Admin(
-        app,
-        name='FluxDB Admin',
-        template_mode='bootstrap5',
-        index_view=FluxDBAdminView(FluxDB(db_path), url='/admin', endpoint='fluxdbadminview')
-    )
-
-    db_dir = os.path.dirname(db_path) or '.'
-    admin.add_view(FileAdmin(db_dir, name='Database Files'))
-
-    @app.route('/')
-    def index():
-        return redirect(url_for('fluxdbadminview.index'))
-
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        ADMIN_PASSWORD = (
-            admin_password or
-            os.environ.get('FLUXDB_ADMIN_PASSWORD') or
-            'admin123'
+        self.app = Flask(__name__)
+        self.app.config['SECRET_KEY'] = (
+            self.secret_key or
+            os.environ.get('FLUXDB_SECRET_KEY') or
+            secrets.token_hex(32)
         )
-        theme = session.get('theme', 'light')
-        cookie_consent = session.get('cookie_consent', False)
-        if request.method == 'POST':
-            password = request.form.get('password')
-            if password == ADMIN_PASSWORD:
-                session['logged_in'] = True
-                session.permanent = True
-                flash('Logged in successfully!', 'success')
-                return redirect(url_for('fluxdbadminview.index'))
-            flash('Invalid password.', 'danger')
-        return render_template_string(
-            """
-            <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=1200">
-                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                    <link href="/static/css/style.css" rel="stylesheet">
-                    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
-                    <script>
-                        function showCookieConsent() {
-                            if (!{{ cookie_consent|tojson }}) {
-                                document.getElementById('cookieConsentModal').style.display = 'block';
+        self.app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days for cookies
+
+        admin = Admin(
+            self.app,
+            name='FluxDB Admin',
+            template_mode='bootstrap5',
+            index_view=FluxDBAdminView(FluxDB(self.db_path), url='/admin', endpoint='fluxdbadminview')
+        )
+
+        db_dir = os.path.dirname(self.db_path) or '.'
+        admin.add_view(FileAdmin(db_dir, name='Database Files'))
+
+        @self.app.route('/')
+        def index():
+            return redirect(url_for('fluxdbadminview.index'))
+
+        @self.app.route('/login', methods=['GET', 'POST'])
+        def login():
+            ADMIN_PASSWORD = (
+                self.admin_password or
+                os.environ.get('FLUXDB_ADMIN_PASSWORD') or
+                'admin123'
+            )
+            theme = session.get('theme', 'light')
+            cookie_consent = session.get('cookie_consent', False)
+            if request.method == 'POST':
+                password = request.form.get('password')
+                if password == ADMIN_PASSWORD:
+                    session['logged_in'] = True
+                    session.permanent = True
+                    flash('Logged in successfully!', 'success')
+                    return redirect(url_for('fluxdbadminview.index'))
+                flash('Invalid password.', 'danger')
+            return render_template_string(
+                """
+                <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=1200">
+                        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                        <link href="/static/css/style.css" rel="stylesheet">
+                        <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+                        <script>
+                            function showCookieConsent() {
+                                if (!{{ cookie_consent|tojson }}) {
+                                    document.getElementById('cookieConsentModal').style.display = 'block';
+                                }
                             }
-                        }
-                        window.onload = showCookieConsent;
-                    </script>
-                </head>
-                <body class="{{ 'bg-light' if theme == 'light' else 'bg-dark text-light' }}">
-                    <div class="container mt-5" style="max-width: 1200px;">
-                        <div class="card shadow-sm p-4" style="max-width: 400px; margin: auto;">
-                            <h2 class="text-center mb-4">FluxDB Admin Login</h2>
-                            {% with messages = get_flashed_messages(with_categories=true) %}
-                                {% if messages %}
-                                    {% for category, message in messages %}
-                                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                            {{ message }}
-                                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                        </div>
-                                    {% endfor %}
-                                {% endif %}
-                            {% endwith %}
-                            <form method="post">
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">Password</label>
-                                    <input type="password" name="password" id="password" class="form-control" required>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Login</button>
-                            </form>
+                            window.onload = showCookieConsent;
+                        </script>
+                    </head>
+                    <body class="{{ 'bg-light' if theme == 'light' else 'bg-dark text-light' }}">
+                        <div class="container mt-5" style="max-width: 1200px;">
+                            <div class="card shadow-sm p-4" style="max-width: 400px; margin: auto;">
+                                <h2 class="text-center mb-4">FluxDB Admin Login</h2>
+                                {% with messages = get_flashed_messages(with_categories=true) %}
+                                    {% if messages %}
+                                        {% for category, message in messages %}
+                                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                                {{ message }}
+                                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endwith %}
+                                <form method="post">
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <input type="password" name="password" id="password" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                    {{ COOKIE_CONSENT_HTML | safe }}
-                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-                </body>
-            </html>
-            """,
-            theme=theme,
-            cookie_consent=cookie_consent
-        )
+                        {{ COOKIE_CONSENT_HTML | safe }}
+                        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+                    </body>
+                </html>
+                """,
+                theme=theme,
+                cookie_consent=cookie_consent
+            )
 
-    @app.route('/cookie_consent', methods=['POST'])
-    def cookie_consent():
-        consent = request.form.get('consent', 'essential')
-        session['cookie_consent'] = consent == 'all'
-        session.permanent = True
-        flash("Cookie preferences saved.", "success")
-        return redirect(request.referrer or url_for('fluxdbadminview.index'))
+        @self.app.route('/cookie_consent', methods=['POST'])
+        def cookie_consent():
+            consent = request.form.get('consent', 'essential')
+            session['cookie_consent'] = consent == 'all'
+            session.permanent = True
+            flash("Cookie preferences saved.", "success")
+            return redirect(request.referrer or url_for('fluxdbadminview.index'))
 
-    @app.route('/set_theme', methods=['POST'])
-    @require_auth
-    def set_theme():
-        if session.get('cookie_consent', False):
-            theme = request.form.get('theme', 'light')
-            session['theme'] = theme
-            flash(f"Theme set to {theme}.", "success")
-        else:
-            flash("Enable cookies to save theme preferences.", "warning")
-        return redirect(request.referrer or url_for('fluxdbadminview.index'))
+        @self.app.route('/set_theme', methods=['POST'])
+        @require_auth
+        def set_theme():
+            if session.get('cookie_consent', False):
+                theme = request.form.get('theme', 'light')
+                session['theme'] = theme
+                flash(f"Theme set to {theme}.", "success")
+            else:
+                flash("Enable cookies to save theme preferences.", "warning")
+            return redirect(request.referrer or url_for('fluxdbadminview.index'))
 
-    @app.route('/static/css/style.css')
-    def serve_css():
-        return Response(STYLE_CSS, mimetype='text/css')
+        @self.app.route('/static/css/style.css')
+        def serve_css():
+            return Response(STYLE_CSS, mimetype='text/css')
 
-    @app.route('/logout')
-    def logout():
-        session.pop('logged_in', None)
-        session.pop('theme', None)
-        flash('Logged out.', 'info')
-        return redirect(url_for('login'))
+        @self.app.route('/logout')
+        def logout():
+            session.pop('logged_in', None)
+            session.pop('theme', None)
+            flash('Logged out.', 'info')
+            return redirect(url_for('login'))
 
-    if not debug:
-        log = logging.getLogger('werkzeug')
-        log.setLevel(logging.ERROR)
-        log.addFilter(NoLoggingFilter())
+        if not self.debug:
+            log = logging.getLogger('werkzeug')
+            log.setLevel(logging.ERROR)
+            log.addFilter(NoLoggingFilter())
 
-    def run_flask():
-        import sys
-        if not debug:
-            null_file = os.devnull if os.name != 'nt' else 'NUL'
-            sys.stdout = open(null_file, 'w')
-            sys.stderr = open(null_file, 'w')
-        app.run(host=host, port=port, debug=debug, use_reloader=False)
+    def start(self):
+        def run_flask():
+            import sys
+            if not self.debug:
+                null_file = os.devnull if os.name != 'nt' else 'NUL'
+                sys.stdout = open(null_file, 'w')
+                sys.stderr = open(null_file, 'w')
+            self.app.run(host=self.host, port=self.port, debug=self.debug, use_reloader=False)
 
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
+        self.flask_thread = threading.Thread(target=run_flask, daemon=True)
+        self.flask_thread.start()
