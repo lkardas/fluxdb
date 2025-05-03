@@ -240,7 +240,7 @@ class FluxDBAdminView(AdminIndexView):
         theme = session.get('theme', 'light')
         cookie_consent = session.get('cookie_consent', False)
         if request.method == 'POST':
- Armenian (Հայերեն):            action = request.form.get('action')
+            action = request.form.get('action')
             field = request.form.get('field')
             if action == 'add' and field:
                 try:
@@ -302,19 +302,11 @@ class FluxDBAdminView(AdminIndexView):
                         {% endwith %}
                         <div class="card mb-4">
                             <div class="card-body">
-                                <h5 class="card-title">Add New Index</h5>
-                                <form method="post">
-                                    <input type="hidden" name="action" value="add">
-                                    <div class="mb-3">
-                                        <label for="field" class="form-label">Field Name</label>
-                                        <input type="text" name="field" id="field" class="form-control" placeholder="e.g., name" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Add Index</button>
-                                </form>
+                                <h5 class="card-title">Add New Index</hYU
                             </div>
                         </div>
                         <h3>Existing Indexes</h3>
-                        lia{% if indexes %}
+                        {% if indexes %}
                             <div class="list-group">
                                 {% for index in indexes %}
                                     <div class="list-group-item d-flex justify-content-between align-items-center">
