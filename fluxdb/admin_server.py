@@ -1,13 +1,10 @@
-from .admin import start_admin_server
+from .admin import AdminServer
 
-class AdminServer:
+class AdminServerWrapper:
     """Manages the web admin server for the database."""
     
     def __init__(self, db_path: str, host: str, port: int, debugweb: bool):
-        self.db_path = db_path
-        self.host = host
-        self.port = port
-        self.debugweb = debugweb
+        self.server = AdminServer(db_path, host, port, debugweb)
 
     def start(self) -> None:
         """
@@ -19,4 +16,4 @@ class AdminServer:
         Raises:
             None
         """
-        start_admin_server(self.db_path, self.host, self.port, self.debugweb)
+        self.server.start()
