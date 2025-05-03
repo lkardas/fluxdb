@@ -11,7 +11,6 @@ from flask_admin.contrib.fileadmin import FileAdmin
 from functools import wraps
 from .htmlsite import INDEX_HTML, COLLECTION_HTML, EDIT_HTML, STYLE_CSS, COOKIE_CONSENT_HTML, AGGREGATE_HTML
 
-# Suppress Flask logs when not in debug mode
 class NoLoggingFilter(logging.Filter):
     def filter(self, record):
         return False
@@ -302,7 +301,14 @@ class FluxDBAdminView(AdminIndexView):
                         {% endwith %}
                         <div class="card mb-4">
                             <div class="card-body">
-                                <h5 class="card-title">Add New Index</hYU
+                                <h5 class="card-title">Add New Index</h5>
+                                <form method="post">
+                                    <input type="hidden" name="action" value="add">
+                                    <div class="input-group">
+                                        <input type="text" name="field" class="form-control" placeholder="Field name" required>
+                                        <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Add</button>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                         <h3>Existing Indexes</h3>
@@ -380,6 +386,10 @@ class FluxDBAdminView(AdminIndexView):
             flash(f"Transaction error: {str(e)}", "danger")
         return redirect(url_for('fluxdbadminview.collection', collection_name=collection_name))
 
+def start_admin_server(db_path: str, host: str, port: int, debug: bool, admin_password: str = None, secret_key: str = None):
+    server = AdminServer(db_path, host, port, debug, admin_password, secret_key)
+    server.start()
+
 class AdminServer:
     def __init__(
         self,
@@ -409,7 +419,7 @@ class AdminServer:
             os.environ.get('FLUXDB_SECRET_KEY') or
             secrets.token_hex(32)
         )
-        self.app.config['PERMANENT_SESSION_LIFETIME'] = 2592000  # 30 days for cookies
+        self.app.config['PERMANENT_SESSION_LIFETIME'] = 2592000
 
         admin = Admin(
             self.app,
