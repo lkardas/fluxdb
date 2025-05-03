@@ -5,11 +5,6 @@ from .exceptions import FluxDBError
 
 
 class IndexManager:
-    """Manages indexes for FluxDB collections, storing them in a binary format using pickle.
-
-    Args:
-        db_path (str): Path to the database directory.
-    """
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.index_path = os.path.join(db_path, "indexes")
@@ -17,16 +12,9 @@ class IndexManager:
         os.makedirs(self.index_path, exist_ok=True)
 
     def _get_index_path(self, collection: str) -> str:
-        """Returns the file path for a collection's index."""
         return os.path.join(self.index_path, f"{collection}.idx")
 
     def create_index(self, collection: str, fields: List[str]) -> None:
-        """Creates an index for specified fields in a collection.
-
-        Args:
-            collection (str): Name of the collection.
-            fields (List[str]): Fields to index.
-        """
         index_path = self._get_index_path(collection)
         index_data = {field: {} for field in fields}
         self._index_cache[collection] = index_data
@@ -36,11 +24,6 @@ class IndexManager:
             raise FluxDBError(f"Failed to create index for {collection}: {e}")
 
     def clear_index(self, collection: str) -> None:
-        """Clears all indexes for a collection.
-
-        Args:
-            collection (str): Name of the collection.
-        """
         index_path = self._get_index_path(collection)
         try:
             if collection in self._index_cache:
@@ -56,11 +39,6 @@ class IndexManager:
             raise FluxDBError(f"Failed to clear index for {collection}: {e}")
 
     def drop_index(self, collection: str) -> None:
-        """Drops the index for a collection.
-
-        Args:
-            collection (str): Name of the collection.
-        """
         index_path = self._get_index_path(collection)
         try:
             if collection in self._index_cache:
@@ -71,12 +49,6 @@ class IndexManager:
             raise FluxDBError(f"Failed to drop index for {collection}: {e}")
 
     def update_index(self, collection: str, record: Dict) -> None:
-        """Updates the index with a new or modified record.
-
-        Args:
-            collection (str): Name of the collection.
-            record (Dict): Record to index.
-        """
         index_data = self._load_index(collection)
         if not index_data:
             return
@@ -92,12 +64,6 @@ class IndexManager:
             raise FluxDBError(f"Failed to update index for {collection}: {e}")
 
     def remove_from_index(self, collection: str, record_id: str) -> None:
-        """Removes a record from the index.
-
-        Args:
-            collection (str): Name of the collection.
-            record_id (str): ID of the record to remove.
-        """
         index_data = self._load_index(collection)
         if not index_data:
             return
@@ -114,28 +80,10 @@ class IndexManager:
             raise FluxDBError(f"Failed to remove from index for {collection}: {e}")
 
     def can_use_index(self, collection: str, query: Dict) -> bool:
-        """Checks if an index can be used for a query.
-
-        Args:
-            collection (str): Name of the collection.
-            query (Dict): Query dictionary.
-
-        Returns:
-            bool: True if an index can be used, False otherwise.
-        """
         index_data = self._load_index(collection)
         return bool(index_data and any(key in index_data for key in query))
 
     def query_index(self, collection: str, query: Dict) -> Set[str]:
-        """Queries the index to retrieve record IDs matching the query.
-
-        Args:
-            collection (str): Name of the collection.
-            query (Dict): Query dictionary.
-
-        Returns:
-            Set[str]: Set of matching record IDs.
-        """
         index_data = self._load_index(collection)
         if not index_data:
             return set()
@@ -143,19 +91,16 @@ class IndexManager:
         for key, value in query.items():
             if key in index_data:
                 value_str = str(value)
+                index_data[key].setdefault(value_str, [])
                 ids = set(index_data[key].get(value_str, []))
                 result_ids = ids if result_ids is None else result_ids.intersection(ids)
         return result_ids or set()
 
+    def list_indexes(self, collection: str) -> List[str]:
+        index_data = self._load_index(collection)
+        return list(index_data.keys()) if index_data else []
+
     def _load_index(self, collection: str) -> Optional[Dict]:
-        """Loads the index for a collection from cache or disk.
-
-        Args:
-            collection (str): Name of the collection.
-
-        Returns:
-            Optional[Dict]: Index data or None if not found.
-        """
         if collection in self._index_cache:
             return self._index_cache[collection]
         index_path = self._get_index_path(collection)
@@ -170,12 +115,6 @@ class IndexManager:
         return None
 
     def _save_index(self, collection: str, index_data: Dict) -> None:
-        """Saves the index to disk.
-
-        Args:
-            collection (str): Name of the collection.
-            index_data (Dict): Index data to save.
-        """
         index_path = self._get_index_path(collection)
         try:
             with open(index_path, 'wb') as f:
